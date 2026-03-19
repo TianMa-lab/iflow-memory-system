@@ -223,6 +223,19 @@ function Invoke-SelfHealthCheck {
         }
     }
     
+    # 5. 自动提交到 GitHub（如果有改动）
+    $gitStatus = git -C "C:\Users\55237\iflow-memory-system" status --porcelain 2>&1
+    if ($gitStatus -and $gitStatus.Count -gt 0) {
+        $issues += "Git has uncommitted changes"
+        # 自动提交
+        $commitMsg = "Guardian auto-sync: health check + improvements"
+        git -C "C:\Users\55237\iflow-memory-system" add -A 2>&1 | Out-Null
+        git -C "C:\Users\55237\iflow-memory-system" commit -m $commitMsg 2>&1 | Out-Null
+        git -C "C:\Users\55237\iflow-memory-system" push origin main 2>&1 | Out-Null
+        $fixed += "Auto-committed to GitHub"
+        Log("Auto-committed to GitHub: $commitMsg")
+    }
+    
     # 汇报结果
     if ($issues.Count -eq 0) {
         Log("Health check: All systems healthy")
@@ -308,7 +321,7 @@ if (Test-Path $lockFile) {
     timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 } | ConvertTo-Json | Out-File $lockFile -Encoding utf8
 
-Log("Guardian v3.2 started (singleton lock, session history sync, auto-archiving, content-based dedup, DAG maintenance)")
+Log("Guardian v3.3 started (singleton lock, session history sync, auto-archiving, content-based dedup, DAG maintenance)")
 
 $lastRecordedSummary = $null  # 改用摘要内容检查
 $lastStallAlertTime = $null
@@ -459,4 +472,5 @@ while ($true) {
     
     Start-Sleep -Seconds $PollInterval
 }
+
 
