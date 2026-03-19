@@ -321,7 +321,7 @@ if (Test-Path $lockFile) {
     timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 } | ConvertTo-Json | Out-File $lockFile -Encoding utf8
 
-Log("Guardian v3.3 started (singleton lock, session history sync, auto-archiving, content-based dedup, DAG maintenance)")
+Log("Guardian v3.4 started (singleton lock, session history sync, auto-archiving, content-based dedup, DAG maintenance)")
 
 $lastRecordedSummary = $null  # 改用摘要内容检查
 $lastStallAlertTime = $null
@@ -472,5 +472,7 @@ while ($true) {
     
     Start-Sleep -Seconds $PollInterval
 }
+
+
 
 
