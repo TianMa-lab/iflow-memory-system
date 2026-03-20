@@ -14,6 +14,12 @@ for t in tables:
     count = cursor.fetchone()[0]
     print(f'{t[0]}: {count} 条记录')
 
+# 查看 messages 表结构
+print('\n=== messages 表结构 ===')
+cursor.execute('PRAGMA table_info(messages)')
+for col in cursor.fetchall():
+    print(col)
+
 # 查看 summary_nodes 结构
 print('\n=== summary_nodes 结构 ===')
 cursor.execute('PRAGMA table_info(summary_nodes)')
@@ -32,14 +38,9 @@ cursor.execute('SELECT * FROM summary_nodes')
 for row in cursor.fetchall():
     print(row)
 
-# 查看消息时间分布
-print('\n=== 消息时间分布 ===')
-cursor.execute("SELECT datetime(timestamp, 'unixepoch', 'localtime') as ts FROM messages ORDER BY timestamp LIMIT 5")
-print('最早5条:')
-for row in cursor.fetchall():
-    print(row)
-cursor.execute("SELECT datetime(timestamp, 'unixepoch', 'localtime') as ts FROM messages ORDER BY timestamp DESC LIMIT 5")
-print('最新5条:')
+# 查看 heartbeat 数据
+print('\n=== heartbeat 数据 ===')
+cursor.execute('SELECT * FROM heartbeat')
 for row in cursor.fetchall():
     print(row)
 
