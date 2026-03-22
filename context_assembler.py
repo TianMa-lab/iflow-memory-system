@@ -212,6 +212,7 @@ def select_context_items(
     context_items = []
     used_tokens = 0
     reserved_tokens = 0
+    fresh_messages = []
     
     # 1. 预留空间给 fresh tail
     if conversation_id:
@@ -319,14 +320,13 @@ def assemble_context(
             node_type = item.get('node_type', 'unknown')
             if node_type in by_type:
                 by_type[node_type].append(item)
-        
         total_tokens = sum(item.get('tokens', 0) for item in context_items)
         
         return {
             'conversation_id': conversation_id,
             'total_tokens': total_tokens,
             'max_tokens': max_tokens,
-            'usage_ratio': round(total_tokens / max_tokens, 2),
+            'usage_ratio': round(total_tokens / max_tokens, 2) if max_tokens > 0 else 0,
             'items_by_type': {
                 k: len(v) for k, v in by_type.items()
             },
@@ -361,10 +361,10 @@ def format_context_for_prompt(assembled: Dict[str, Any], style: str = 'default')
             lines.append("=== 上下文摘要 ===")
             for item in context_items:
                 if item['type'] == 'summary':
-                    lines.append(f"[{item['node_type']}] {item['topic']}")
+                    lines.append(f"[{item['node_type']}] {item.get('topic', '')}")
                 else:
                     role = item.get('role', 'user')
-                    content = item['content'][:50] + "..."
+                    content = (item.get('content') or '')[:50] + "..."
                     lines.append(f"[{role}] {content}")
     
     elif style == 'depth-aware':
@@ -375,20 +375,20 @@ def format_context_for_prompt(assembled: Dict[str, Any], style: str = 'default')
             if item['type'] == 'summary':
                 weight = item.get('weight', 0.5)
                 node_type = item['node_type']
+                topic = item.get('topic', '')
+                content = item.get('content') or ''
                 
                 if weight > 0.6:
                     # 高权重：显示完整内容
-                    lines.append(f"\n[{node_type.upper()}] {item.get('topic', '')}")
-                    content = item.get('content') or ''
+                    lines.append(f"\n[{node_type.upper()}] {topic}")
                     lines.append(content[:500])
                 elif weight > 0.4:
                     # 中等权重：显示摘要
-                    lines.append(f"[{node_type}] {item.get('topic', '')}")
-                    content = item.get('content') or ''
+                    lines.append(f"[{node_type}] {topic}")
                     lines.append(f"  {content[:200]}...")
                 else:
                     # 低权重：只显示主题
-                    lines.append(f"[{node_type}] {item.get('topic', '')}")
+                    lines.append(f"[{node_type}] {topic}")
             else:
                 # 原始消息
                 role = item.get('role', 'user')
@@ -399,65 +399,39 @@ def format_context_for_prompt(assembled: Dict[str, Any], style: str = 'default')
         # 默认格式
         summaries = assembled.get('summaries', {})
         
-                # 添加 root 摘要
+        # 添加 root 摘要
+        if summaries.get('root'):
+            lines.append("=== 项目总览 ===")
+            for s in summaries['root']:
+                content = s.get('content') or ''
+                lines.append(f"[ROOT] {s.get('topic', '')}")
+                lines.append(f"  {content[:300]}...")
         
-                if summaries.get('root'):
+        # 添加 branch 摘要
+        if summaries.get('branch'):
+            lines.append("\n=== 阶段摘要 ===")
+            for s in summaries['branch']:
+                content = s.get('content') or ''
+                lines.append(f"[BRANCH] {s.get('topic', '')}")
+                lines.append(f"  {content[:200]}...")
         
-                    lines.append("=== 项目总览 ===")
+        # 添加 leaf 摘要
+        if summaries.get('leaf'):
+            lines.append("\n=== 详细记录 ===")
+            for s in summaries['leaf']:
+                content = s.get('content') or ''
+                lines.append(f"[LEAF] {s.get('topic', '')}")
+                lines.append(f"  {content[:150]}...")
         
-                    for s in summaries['root']:
-        
-                        content = s.get('content') or ''
-        
-                        lines.append(f"[ROOT] {s.get('topic', '')}")
-        
-                        lines.append(f"  {content[:300]}...")
-        
-                # 添加 branch 摘要
-        
-                if summaries.get('branch'):
-        
-                    lines.append("\n=== 阶段摘要 ===")
-        
-                    for s in summaries['branch']:
-        
-                        content = s.get('content') or ''
-        
-                        lines.append(f"[BRANCH] {s.get('topic', '')}")
-        
-                        lines.append(f"  {content[:200]}...")
-        
-                # 添加 leaf 摘要
-        
-                if summaries.get('leaf'):
-        
-                    lines.append("\n=== 详细记录 ===")
-        
-                    for s in summaries['leaf']:
-        
-                        content = s.get('content') or ''
-        
-                        lines.append(f"[LEAF] {s.get('topic', '')}")
-        
-                        lines.append(f"  {content[:150]}...")
-        
-                # 添加最近消息
-        
-                messages = assembled.get('recent_messages', [])
-        
-                if messages:
-        
-                    lines.append("\n=== 最近对话 ===")
-        
-                    for msg in messages[-10:]:
-        
-                        role = msg.get('role', 'user')
-        
-                        content = msg.get('content') or ''
-        
-                        content = content[:100] + "..." if len(content) > 100 else content
-        
-                        lines.append(f"{role}: {content}")
+        # 添加最近消息
+        messages = assembled.get('recent_messages', [])
+        if messages:
+            lines.append("\n=== 最近对话 ===")
+            for msg in messages[-10:]:
+                role = msg.get('role', 'user')
+                content = msg.get('content') or ''
+                content = content[:100] + "..." if len(content) > 100 else content
+                lines.append(f"{role}: {content}")
     
     return "\n".join(lines)
 
@@ -647,6 +621,8 @@ if __name__ == "__main__":
         elif sys.argv[1] == '--depth-aware':
             assembled = assemble_context()
             result = {'formatted': format_context_for_prompt(assembled, style='depth-aware')}
+        elif sys.argv[1] == '--with-guidance':
+            result = get_full_context_with_guidance()
         else:
             conversation_id = sys.argv[1]
             result = get_conversation_context(conversation_id)
