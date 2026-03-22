@@ -378,53 +378,86 @@ def format_context_for_prompt(assembled: Dict[str, Any], style: str = 'default')
                 
                 if weight > 0.6:
                     # 高权重：显示完整内容
-                    lines.append(f"\n[{node_type.upper()}] {item['topic']}")
-                    lines.append(item['content'][:500])
+                    lines.append(f"\n[{node_type.upper()}] {item.get('topic', '')}")
+                    content = item.get('content') or ''
+                    lines.append(content[:500])
                 elif weight > 0.4:
                     # 中等权重：显示摘要
-                    lines.append(f"[{node_type}] {item['topic']}")
-                    lines.append(f"  {item['content'][:200]}...")
+                    lines.append(f"[{node_type}] {item.get('topic', '')}")
+                    content = item.get('content') or ''
+                    lines.append(f"  {content[:200]}...")
                 else:
                     # 低权重：只显示主题
-                    lines.append(f"[{node_type}] {item['topic']}")
+                    lines.append(f"[{node_type}] {item.get('topic', '')}")
             else:
                 # 原始消息
                 role = item.get('role', 'user')
-                lines.append(f"\n{role}: {item['content']}")
+                content = item.get('content') or ''
+                lines.append(f"\n{role}: {content}")
     
     else:
         # 默认格式
         summaries = assembled.get('summaries', {})
         
-        # 添加 root 摘要
-        if summaries.get('root'):
-            lines.append("=== 项目总览 ===")
-            for s in summaries['root']:
-                lines.append(f"[ROOT] {s['topic']}")
-                lines.append(f"  {s['content'][:300]}...")
+                # 添加 root 摘要
         
-        # 添加 branch 摘要
-        if summaries.get('branch'):
-            lines.append("\n=== 阶段摘要 ===")
-            for s in summaries['branch']:
-                lines.append(f"[BRANCH] {s['topic']}")
-                lines.append(f"  {s['content'][:200]}...")
+                if summaries.get('root'):
         
-        # 添加 leaf 摘要
-        if summaries.get('leaf'):
-            lines.append("\n=== 详细记录 ===")
-            for s in summaries['leaf']:
-                lines.append(f"[LEAF] {s['topic']}")
-                lines.append(f"  {s['content'][:150]}...")
+                    lines.append("=== 项目总览 ===")
         
-        # 添加最近消息
-        messages = assembled.get('recent_messages', [])
-        if messages:
-            lines.append("\n=== 最近对话 ===")
-            for msg in messages[-10:]:
-                role = msg['role']
-                content = msg['content'][:100] + "..." if len(msg['content']) > 100 else msg['content']
-                lines.append(f"{role}: {content}")
+                    for s in summaries['root']:
+        
+                        content = s.get('content') or ''
+        
+                        lines.append(f"[ROOT] {s.get('topic', '')}")
+        
+                        lines.append(f"  {content[:300]}...")
+        
+                # 添加 branch 摘要
+        
+                if summaries.get('branch'):
+        
+                    lines.append("\n=== 阶段摘要 ===")
+        
+                    for s in summaries['branch']:
+        
+                        content = s.get('content') or ''
+        
+                        lines.append(f"[BRANCH] {s.get('topic', '')}")
+        
+                        lines.append(f"  {content[:200]}...")
+        
+                # 添加 leaf 摘要
+        
+                if summaries.get('leaf'):
+        
+                    lines.append("\n=== 详细记录 ===")
+        
+                    for s in summaries['leaf']:
+        
+                        content = s.get('content') or ''
+        
+                        lines.append(f"[LEAF] {s.get('topic', '')}")
+        
+                        lines.append(f"  {content[:150]}...")
+        
+                # 添加最近消息
+        
+                messages = assembled.get('recent_messages', [])
+        
+                if messages:
+        
+                    lines.append("\n=== 最近对话 ===")
+        
+                    for msg in messages[-10:]:
+        
+                        role = msg.get('role', 'user')
+        
+                        content = msg.get('content') or ''
+        
+                        content = content[:100] + "..." if len(content) > 100 else content
+        
+                        lines.append(f"{role}: {content}")
     
     return "\n".join(lines)
 
