@@ -488,6 +488,110 @@ def get_context_for_query(query: str, max_tokens: int = 4000) -> str:
     return format_context_for_prompt(assembled, style='depth-aware')
 
 
+def build_depth_aware_system_prompt(context_items: List[Dict[str, Any]]) -> str:
+    """
+    构建 depth-aware 系统提示
+    借鉴 lossless-claw 的设计：当存在摘要时，添加 LCM 使用指导
+    
+    Guidance 只在存在摘要时生成，且深度越深提示越详细
+    """
+    summaries = [item for item in context_items if item.get('type') == 'summary']
+    
+    if not summaries:
+        return ""
+    
+    # 计算最大深度
+    max_depth = 0
+    condensed_count = 0
+    for s in summaries:
+        node_type = s.get('node_type', 'leaf')
+        if node_type == 'root':
+            depth = 2
+        elif node_type == 'branch':
+            depth = 1
+        else:
+            depth = 0
+        max_depth = max(max_depth, depth)
+        if node_type in ('root', 'branch'):
+            condensed_count += 1
+    
+    heavily_compacted = max_depth >= 2 or condensed_count >= 2
+    
+    sections = []
+    
+    # 核心召回工作流 - 总是存在
+    sections.extend([
+        "## LCM Recall",
+        "",
+        "上面的摘要是压缩的上下文 - 是细节的映射，而非细节本身。",
+        "",
+        "**召回优先级：** 优先使用 LCM 工具查询压缩的对话历史。如果 LCM 未覆盖所需数据，优先使用可用的记忆/召回工具，最后才回退到原始文本搜索。",
+        "",
+        "**工具升级链：**",
+        "1. `dag_grep` - 按正则或全文搜索消息和摘要",
+        "2. `dag_describe` - 查看特定摘要详情（低成本）",
+        "3. `dag_tools.py` - 深度召回，扩展 DAG",
+        "",
+        "**精确性原则：** 不要从压缩摘要中猜测确切的命令、文件路径、时间戳、配置值或因果声明。需要时先扩展，或说明不确定。",
+    ])
+    
+    # 深度压缩时的额外警告
+    if heavily_compacted:
+        sections.extend([
+            "",
+            "⚠ **深度压缩上下文 - 在断言细节前先扩展。**",
+            "",
+            "精确工作的默认召回流程：",
+            "1) `dag_grep` 定位相关摘要/消息 ID",
+            "2) 扩展查询获取具体内容",
+            "3) 回答时引用使用的摘要 ID",
+            "",
+            "**不确定性检查清单（回答前运行）：**",
+            "- 我是否从压缩摘要中做出精确的事实声明？",
+            "- 压缩是否可能遗漏了关键细节？",
+            "- 如果用户要求证据，这个答案会失败吗？",
+            "",
+            "如果以上任一为是 → 先扩展。",
+        ])
+    else:
+        sections.extend([
+            "",
+            "**对于精确性/证据问题**（确切命令、路径、时间戳、配置值、根因链）：回答前先扩展。",
+            "不要从压缩摘要中猜测 - 先扩展或说明不确定。",
+        ])
+    
+    return "\n".join(sections)
+
+
+def get_full_context_with_guidance(
+    conversation_id: Optional[str] = None,
+    max_tokens: int = MAX_TOKENS_DEFAULT
+) -> Dict[str, Any]:
+    """
+    获取完整上下文，包含 depth-aware 系统提示指导
+    用于实际对话场景
+    """
+    assembled = assemble_context(conversation_id=conversation_id, max_tokens=max_tokens)
+    context_items = assembled.get('context_items', [])
+    
+    # 构建 depth-aware 系统提示
+    system_prompt_addition = build_depth_aware_system_prompt(context_items)
+    
+    # 格式化上下文
+    formatted_context = format_context_for_prompt(assembled, style='depth-aware')
+    
+    return {
+        'context': formatted_context,
+        'system_prompt_addition': system_prompt_addition,
+        'stats': {
+            'total_tokens': assembled['total_tokens'],
+            'items_by_type': assembled['items_by_type'],
+            'has_summaries': len([i for i in context_items if i.get('type') == 'summary']) > 0,
+            'heavily_compacted': '⚠' in system_prompt_addition
+        }
+    }
+
+
 if __name__ == "__main__":
     import sys
     
