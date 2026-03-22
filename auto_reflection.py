@@ -16,14 +16,21 @@ DB_PATH = IFLOW_DIR / "memory-dag" / "lcm.db"
 DAG_TOOLS = IFLOW_DIR / "tools" / "dag_tools.py"
 SKILL_SCORER = IFLOW_DIR / "tools" / "skill_scorer.py"
 
-# 技能阶段映射
+# 技能阶段映射 (完整 Superpowers 技能集)
 PHASE_SKILLS = {
-    1: "brainstorming",
-    2: "systematic-debugging", 
-    3: "writing-plans",
-    4: "executing-plans",
-    5: "tdd-cycle",
-    6: "skill-scoring"
+    # 核心 Superpowers 技能 (obra/superpowers)
+    1: "brainstorming",              # 苏格拉底式设计提炼
+    2: "systematic-debugging",       # 四阶段根因分析
+    3: "writing-plans",              # 任务分解计划
+    4: "executing-plans",            # 批量执行
+    5: "tdd-cycle",                  # RED-GREEN-REFACTOR
+    # 新增 Superpowers 技能
+    6: "subagent-driven-development", # 子代理派发开发
+    7: "requesting-code-review",      # 代码审查
+    8: "finishing-a-development-branch", # 完成开发分支
+    # 我们的元能力
+    9: "skill-scoring",              # 技能评分
+    10: "deep-reflection"            # 深刻自省
 }
 
 def get_db_connection():
