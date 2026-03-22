@@ -534,10 +534,8 @@ while ($true) {
                     
                     # 更新已记录的摘要
                     $lastRecordedSummary = $currentSummary
-                } else {
-                    # 相同摘要，不重复记录
-                    Log("Skipping duplicate summary: $currentSummary")
                 }
+                # 相同摘要时不记录，这是正常行为，不需要日志
             }
         } catch {
             Log("Error parsing heartbeat: $_")
