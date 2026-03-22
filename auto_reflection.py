@@ -17,6 +17,30 @@ def get_db_connection():
     return sqlite3.connect(str(DB_PATH))
 
 def check_heartbeat():
+    """
+    检查心跳状态 - 统一检查文件和数据库
+    Guardian 更新 heartbeat.json 文件，优先使用文件状态
+    """
+    import os
+    
+    # 优先检查文件 heartbeat (Guardian 更新的)
+    heartbeat_file = IFLOW_DIR / "heartbeat.json"
+    if heartbeat_file.exists():
+        try:
+            with open(heartbeat_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            last_active_str = data.get('lastActive', '')
+            if last_active_str:
+                last_active = datetime.fromisoformat(last_active_str.replace('Z', '+00:00').replace('+00:00', ''))
+                stalled_seconds = (datetime.now() - last_active).total_seconds()
+                
+                if stalled_seconds > 300:
+                    return {"status": "error", "message": f"stalled {int(stalled_seconds)}s (file)", "last_active": last_active_str}
+                return {"status": "ok", "message": f"ok, {int(stalled_seconds)}s ago (file)"}
+        except Exception as e:
+            pass
+    
+    # 回退到数据库 heartbeat
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT last_active FROM heartbeat WHERE id = 1")
@@ -30,8 +54,8 @@ def check_heartbeat():
     stalled_seconds = (datetime.now() - last_active).total_seconds()
     
     if stalled_seconds > 300:
-        return {"status": "error", "message": f"stalled {int(stalled_seconds)}s", "last_active": row[0]}
-    return {"status": "ok", "message": f"ok, {int(stalled_seconds)}s ago"}
+        return {"status": "error", "message": f"stalled {int(stalled_seconds)}s (db)", "last_active": row[0]}
+    return {"status": "ok", "message": f"ok, {int(stalled_seconds)}s ago (db)"}
 
 def check_guardian():
     """检查 Guardian 是否运行 - 使用多种方式检测"""
@@ -95,13 +119,31 @@ def check_dag():
     return {"status": "ok", "message": f"msgs:{msg_count}, nodes:{node_count}"}
 
 def fix_heartbeat():
+    """更新心跳 - 同时更新文件和数据库，保持同步"""
+    now = datetime.now()
+    now_str = now.isoformat()
+    
+    # 更新文件 heartbeat
+    heartbeat_file = IFLOW_DIR / "heartbeat.json"
+    heartbeat_data = {
+        "lastActive": now_str,
+        "lastSummary": "auto-fix",
+        "sessionId": "auto-reflection"
+    }
+    try:
+        with open(heartbeat_file, 'w', encoding='utf-8') as f:
+            json.dump(heartbeat_data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        pass
+    
+    # 更新数据库 heartbeat
     conn = get_db_connection()
     cursor = conn.cursor()
-    now = datetime.now().isoformat()
-    cursor.execute("INSERT OR REPLACE INTO heartbeat (id, last_active, session_id) VALUES (1, ?, 'auto-fix')", (now,))
+    cursor.execute("INSERT OR REPLACE INTO heartbeat (id, last_active, session_id) VALUES (1, ?, 'auto-fix')", (now_str,))
     conn.commit()
     conn.close()
-    return {"status": "fixed", "message": f"updated: {now}"}
+    
+    return {"status": "fixed", "message": f"updated: {now_str}"}
 
 def record_to_dag(content):
     import subprocess
