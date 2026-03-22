@@ -53,12 +53,21 @@ function Update-DB-Heartbeat {
     if (-not (Test-Path $dbPath)) { return "DB not found" }
     
     $now = Get-Date -Format "yyyy-MM-ddTHH:mm:ss"
-    $sql = "INSERT OR REPLACE INTO heartbeat (id, last_active, session_id) VALUES (1, '$now', '$SessionId')"
     
     try {
-        # 使用 sqlite3 命令行工具（如果可用）或 Python
-        $pythonCmd = "python -c `"import sqlite3; conn=sqlite3.connect(r'$dbPath'); conn.execute('$sql'); conn.commit(); conn.close()`""
-        Invoke-Expression $pythonCmd 2>&1 | Out-Null
+        # 使用临时文件执行 Python 代码
+        $tempFile = "$env:TEMP\guardian_heartbeat.py"
+        $pythonCode = @"
+import sqlite3
+from pathlib import Path
+db_path = Path(r'$dbPath')
+conn = sqlite3.connect(str(db_path))
+conn.execute('INSERT OR REPLACE INTO heartbeat (id, last_active, session_id) VALUES (1, ?, ?)', ('$now', '$SessionId'))
+conn.commit()
+conn.close()
+"@
+        $pythonCode | Out-File $tempFile -Encoding UTF8
+        python $tempFile 2>&1 | Out-Null
         return "OK"
     } catch {
         return "Error: $_"
