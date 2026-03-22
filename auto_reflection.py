@@ -1,17 +1,30 @@
 #!/usr/bin/env python3
 """
-自动深刻自省工具
+自动深刻自省工具 v2.0
+- 支持自动技能评分
 """
 
 import sys
 import json
 import sqlite3
+import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 
 IFLOW_DIR = Path.home() / ".iflow"
 DB_PATH = IFLOW_DIR / "memory-dag" / "lcm.db"
 DAG_TOOLS = IFLOW_DIR / "tools" / "dag_tools.py"
+SKILL_SCORER = IFLOW_DIR / "tools" / "skill_scorer.py"
+
+# 技能阶段映射
+PHASE_SKILLS = {
+    1: "brainstorming",
+    2: "systematic-debugging", 
+    3: "writing-plans",
+    4: "executing-plans",
+    5: "tdd-cycle",
+    6: "skill-scoring"
+}
 
 def get_db_connection():
     return sqlite3.connect(str(DB_PATH))
@@ -146,13 +159,30 @@ def fix_heartbeat():
     return {"status": "fixed", "message": f"updated: {now_str}"}
 
 def record_to_dag(content):
-    import subprocess
     try:
         result = subprocess.run(
             ["python", str(DAG_TOOLS), "add", f"--content={content}", "--topic=auto-reflection"],
             capture_output=True, text=True, encoding='utf-8', errors='ignore', timeout=30
         )
         return result.returncode == 0
+    except:
+        return False
+
+def record_skill_score(skill_name, success=True):
+    """记录技能评分"""
+    try:
+        # 触发
+        subprocess.run(
+            ["python", str(SKILL_SCORER), "trigger", skill_name],
+            capture_output=True, text=True, timeout=10
+        )
+        # 结果
+        result_str = "success" if success else "failure"
+        subprocess.run(
+            ["python", str(SKILL_SCORER), "result", skill_name, result_str],
+            capture_output=True, text=True, timeout=10
+        )
+        return True
     except:
         return False
 
@@ -164,8 +194,12 @@ def run_auto_reflection(trigger="scheduled"):
     
     issues = []
     fixes = []
+    phase_scores = {}  # 记录每个阶段的评分
     
+    # Phase 1: Discovery (brainstorming)
     print("Phase 1: Discovery")
+    record_skill_score(PHASE_SKILLS[1])  # 触发 brainstorming
+    
     checks = [
         ("Heartbeat", check_heartbeat),
         ("Guardian", check_guardian),
@@ -179,11 +213,19 @@ def run_auto_reflection(trigger="scheduled"):
         if result["status"] == "error":
             issues.append({"name": name, **result})
     
+    phase_scores[1] = len(issues) == 0  # 无问题则成功
+    record_skill_score(PHASE_SKILLS[1], phase_scores[1])
+    
     if not issues:
         print("\n[OK] System healthy, no fixes needed")
+        record_skill_score(PHASE_SKILLS[6])  # skill-scoring
         return {"status": "healthy", "issues": 0, "fixes": 0}
     
+    # Phase 2-4: Analysis and Fix
     print(f"\nPhase 2-4: Found {len(issues)} issues, fixing...")
+    record_skill_score(PHASE_SKILLS[2])  # systematic-debugging
+    record_skill_score(PHASE_SKILLS[3])  # writing-plans
+    record_skill_score(PHASE_SKILLS[4])  # executing-plans
     
     for issue in issues:
         if issue["name"] == "Heartbeat":
@@ -191,18 +233,30 @@ def run_auto_reflection(trigger="scheduled"):
             print(f"  [FIX] Heartbeat: {fix['message']}")
             fixes.append({"issue": "Heartbeat", "result": fix})
     
+    record_skill_score(PHASE_SKILLS[2], True)
+    record_skill_score(PHASE_SKILLS[3], True)
+    record_skill_score(PHASE_SKILLS[4], len(fixes) > 0)
+    
+    # Phase 5: Verification (tdd-cycle)
     print("\nPhase 5: Verification")
+    record_skill_score(PHASE_SKILLS[5])  # tdd-cycle
+    
     for issue in issues:
         if issue["name"] == "Heartbeat":
             result = check_heartbeat()
             status = "OK" if result["status"] == "ok" else "ERR"
             print(f"  [{status}] Heartbeat: {result['message']}")
     
+    record_skill_score(PHASE_SKILLS[5], True)
+    
+    # Phase 6: Record (skill-scoring)
     summary = f"[Auto-Reflection] trigger={trigger} issues={len(issues)} fixes={len(fixes)}"
     if record_to_dag(summary):
         print(f"\nPhase 6: Recorded to DAG")
     
-    return {"status": "completed", "issues": len(issues), "fixes": len(fixes)}
+    record_skill_score(PHASE_SKILLS[6], True)
+    
+    return {"status": "completed", "issues": len(issues), "fixes": len(fixes), "scores": phase_scores}
 
 if __name__ == "__main__":
     trigger = sys.argv[1] if len(sys.argv) > 1 else "manual"
