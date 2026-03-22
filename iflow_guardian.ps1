@@ -42,6 +42,50 @@ function Get-Heartbeat {
     return $null
 }
 
+function Update-DB-Heartbeat {
+    <#
+    .SYNOPSIS
+        同时更新数据库 heartbeat 表，保持与文件 heartbeat 同步
+    #>
+    param([string]$SessionId = "guardian")
+    
+    $dbPath = "$env:USERPROFILE\.iflow\memory-dag\lcm.db"
+    if (-not (Test-Path $dbPath)) { return "DB not found" }
+    
+    $now = Get-Date -Format "yyyy-MM-ddTHH:mm:ss"
+    $sql = "INSERT OR REPLACE INTO heartbeat (id, last_active, session_id) VALUES (1, '$now', '$SessionId')"
+    
+    try {
+        # 使用 sqlite3 命令行工具（如果可用）或 Python
+        $pythonCmd = "python -c `"import sqlite3; conn=sqlite3.connect(r'$dbPath'); conn.execute('$sql'); conn.commit(); conn.close()`""
+        Invoke-Expression $pythonCmd 2>&1 | Out-Null
+        return "OK"
+    } catch {
+        return "Error: $_"
+    }
+}
+
+function Update-All-Heartbeats {
+    <#
+    .SYNOPSIS
+        更新文件和数据库两种 heartbeat，保持同步
+    #>
+    param([string]$Summary = "", [string]$SessionId = "guardian")
+    
+    $now = Get-Date -Format "yyyy-MM-ddTHH:mm:ss"
+    
+    # 更新文件 heartbeat
+    $heartbeatData = @{
+        lastActive = $now
+        lastSummary = $Summary
+        sessionId = $SessionId
+    }
+    $heartbeatData | ConvertTo-Json | Out-File $HeartbeatFile -Encoding utf8
+    
+    # 更新数据库 heartbeat
+    Update-DB-Heartbeat -SessionId $SessionId
+}
+
 function Record-To-DAG($summary) {
     $pythonCmd = "conda run -n p311 python `"$env:USERPROFILE\.iflow\tools\dag_tools.py`" add --content=`"$summary`" --topic=`"自动记录`" --role=`"assistant`""
     try {
@@ -249,6 +293,9 @@ function Invoke-SelfHealthCheck {
         python "$env:USERPROFILE\.iflow\tools\dag_tools.py" add --content="$summary" --topic="系统健康" 2>&1 | Out-Null
     }
     
+    # 更新 heartbeat（保持数据库和文件同步）
+    Update-All-Heartbeats -Summary "health-check" -SessionId "guardian"
+    
     return @{ issues = $issues; fixed = $fixed }
 }
 
@@ -300,19 +347,32 @@ function Consume-Stall-Alert {
     return "No alert"
 }
 
-# 单例检测：防止多个 Guardian 同时运行
+# 单例检测：防止多个 Guardian 同时运行（改进：检查 PID 是否仍在运行）
 $lockFile = "$env:USERPROFILE\.iflow\.guardian.lock"
 if (Test-Path $lockFile) {
     $lockContent = Get-Content $lockFile -Raw -ErrorAction SilentlyContinue
     try {
         $lockData = $lockContent | ConvertFrom-Json
-        $lockTime = [DateTime]::Parse($lockData.timestamp)
-        if (((Get-Date) - $lockTime).TotalMinutes -lt 5) {
-            # 5分钟内有其他 Guardian 在运行，退出
-            Write-Host "Another Guardian instance is running (PID: $($lockData.pid)), exiting..."
-            exit 0
+        $existingPid = $lockData.pid
+        
+        # 检查该 PID 进程是否仍在运行
+        $stillRunning = Get-Process -Id $existingPid -ErrorAction SilentlyContinue
+        if ($stillRunning) {
+            $lockTime = [DateTime]::Parse($lockData.timestamp)
+            $ageMinutes = ((Get-Date) - $lockTime).TotalMinutes
+            if ($ageMinutes -lt 5) {
+                Write-Host "Another Guardian instance is running (PID: $existingPid), exiting..."
+                exit 0
+            }
+        } else {
+            # 进程已退出，清理锁文件
+            Log("Stale lock file found (PID $existingPid not running), removing...")
+            Remove-Item $lockFile -Force
         }
-    } catch {}
+    } catch {
+        # 解析失败，清理锁文件
+        Remove-Item $lockFile -Force -ErrorAction SilentlyContinue
+    }
 }
 
 # 写入锁文件
@@ -320,6 +380,11 @@ if (Test-Path $lockFile) {
     pid = $PID
     timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 } | ConvertTo-Json | Out-File $lockFile -Encoding utf8
+
+# 注册退出时清理锁文件
+$null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
+    Remove-Item "$env:USERPROFILE\.iflow\.guardian.lock" -Force -ErrorAction SilentlyContinue
+}
 
 Log("Guardian v3.4 started (singleton lock, session history sync, auto-archiving, content-based dedup, DAG maintenance)")
 
