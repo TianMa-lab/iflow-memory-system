@@ -1,0 +1,185 @@
+[
+  {
+    "id": "lesson-20260323-001",
+    "lesson": "技术障碍时应先问'目标是什么'而非'怎么绕过障碍'",
+    "story": {
+      "context": "想监控 iFlow CLI 的请求是否合规，避免跳过根因分析等违规行为",
+      "approaches": [
+        "外部守护进程",
+        "Windows 无 pty/tty 失败",
+        "包装器脚本",
+        "TUI 无法解析失败",
+        "Docker/WSL2",
+        "仍无法拦截 Windows 进程"
+      ],
+      "breakthrough": "用户提问：为什么不让 iFlow 主动提交审核？",
+      "result": "主动审核方案，一个 Python 脚本就解决了，无需拦截"
+    },
+    "triggers": [
+      "技术障碍",
+      "方案碰壁",
+      "过度工程",
+      "监控",
+      "拦截",
+      "复杂方案"
+    ],
+    "related_topics": [
+      "元认知",
+      "问题解决",
+      "架构设计",
+      "智能体设计"
+    ],
+    "created": "2026-03-23T16:31:38.627092",
+    "times_matched": 11,
+    "last_matched": "2026-03-23T18:36:28.972125"
+  },
+  {
+    "id": "lesson-20260323-002",
+    "lesson": "递归累积会导致数据爆炸式增长",
+    "story": {
+      "context": "Guardian 记录会话空闲时，每次记录包含上一次记录的完整内容，导致指数级增长",
+      "approaches": [
+        "发现 AGENTS.md 有大量重复内容",
+        "检查 Guardian 代码",
+        "发现 currentSummary 包含了上一次的完整内容"
+      ],
+      "breakthrough": "添加前缀剥离逻辑，只保留新内容",
+      "result": "在 Guardian 中添加正则替换，清理掉重复前缀"
+    },
+    "triggers": [
+      "递归",
+      "累积",
+      "循环引用",
+      "重复记录",
+      "数据爆炸"
+    ],
+    "related_topics": [
+      "数据结构",
+      "系统设计",
+      "Guardian"
+    ],
+    "created": "2026-03-23T19:00:29.922007",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260323-003",
+    "lesson": "自省不能只看表面统计，要检查实际系统状态",
+    "story": {
+      "context": "Guardian 报告显示心跳正常，但实际检查发现心跳停滞、AGENTS.md 有噪音",
+      "approaches": [
+        "查看 Guardian 日志报告",
+        "表面统计看起来正常"
+      ],
+      "breakthrough": "用户提示：自省不能只看表面统计，要检查实际值",
+      "result": "修改自省逻辑，强制检查实际系统状态而非依赖统计报告"
+    },
+    "triggers": [
+      "自省",
+      "表面统计",
+      "假阳性",
+      "检查",
+      "系统状态",
+      "验证"
+    ],
+    "related_topics": [
+      "自省",
+      "测试",
+      "验证",
+      "深度检查"
+    ],
+    "created": "2026-03-23T19:00:54.828594",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260323-004",
+    "lesson": "规则存在不代表会被遵守，需要强制执行机制",
+    "story": {
+      "context": "Superpowers 流程写在 IDENTITY.md 里，但实际执行时被跳过，没有触发相应 skill",
+      "approaches": [
+        "检查 IDENTITY.md 规则",
+        "规则都写了",
+        "但执行时没调用"
+      ],
+      "breakthrough": "意识到规则只是'建议'，没有强制执行",
+      "result": "添加响应审计器 + 请求审核器 + lesson-check skill，多层面强制"
+    },
+    "triggers": [
+      "规则",
+      "跳过",
+      "流程",
+      "强制执行",
+      "遵守",
+      "检查"
+    ],
+    "related_topics": [
+      "流程控制",
+      "强制机制",
+      "审计",
+      "Superpowers"
+    ],
+    "created": "2026-03-23T19:01:13.839238",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260323-005",
+    "lesson": "配置修改后必须重启服务才能生效",
+    "story": {
+      "context": "修改 OpenClaw 配置文件后，Gateway 没有读取到新配置，导致版本不匹配",
+      "approaches": [
+        "修改配置文件",
+        "检查运行状态",
+        "发现还是旧配置"
+      ],
+      "breakthrough": "意识到 Gateway 进程已加载配置，需要重启",
+      "result": "建立规则：配置修改后必须重启相关服务"
+    },
+    "triggers": [
+      "配置",
+      "修改",
+      "重启",
+      "服务",
+      "生效",
+      "更新"
+    ],
+    "related_topics": [
+      "配置管理",
+      "服务运维",
+      "OpenClaw"
+    ],
+    "created": "2026-03-23T19:01:36.190059",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260323-006",
+    "lesson": "清理文件前必须先分析根因，不能直接动手",
+    "story": {
+      "context": "一开始就想清理 MEMORY.md，没有思考为什么会有垃圾",
+      "approaches": [
+        "看到垃圾就想清理",
+        "准备动手删除"
+      ],
+      "breakthrough": "用户质问：为什么不想想根因？",
+      "result": "建立规则：先分析根因，再采取行动"
+    },
+    "triggers": [
+      "清理",
+      "删除",
+      "根因",
+      "分析",
+      "直接动手",
+      "跳过分析"
+    ],
+    "related_topics": [
+      "问题解决",
+      "根因分析",
+      "决策"
+    ],
+    "created": "2026-03-23T19:02:00.334093",
+    "times_matched": 0,
+    "last_matched": null
+  }
+]

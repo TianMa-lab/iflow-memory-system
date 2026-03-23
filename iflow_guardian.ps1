@@ -500,6 +500,12 @@ while ($true) {
             $currentSummary = $currentSummary -replace "^health-check$", "健康检查"
             $currentSummary = $currentSummary -replace "^auto-fix$", "自动修复"
             
+            # === 3.5 响应审计 ===
+            $auditResult = python "$env:USERPROFILE\.iflow	oolsesponse_auditor.py" "$currentSummary" 2>&1
+            if ($auditResult -ne "OK") {
+                Log("Response audit: $auditResult")
+            }
+            
             # === 4. 心跳停滞检测 ===
             if ($idleSeconds -gt $HeartbeatStallThreshold) {
                 # 避免重复提醒，每5分钟最多提醒一次
