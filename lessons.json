@@ -181,5 +181,63 @@
     "created": "2026-03-23T19:02:00.334093",
     "times_matched": 0,
     "last_matched": null
+  },
+  {
+    "id": "lesson-20260323-007",
+    "lesson": "问题反复出现说明根因未找到，不能只打补丁，需要深挖真正的错误原因",
+    "story": {
+      "context": "心跳问题多次修复仍反复出现",
+      "approaches": [
+        "修改心跳更新逻辑",
+        "添加双写同步",
+        "各种补丁"
+      ],
+      "breakthrough": "用户追问：为什么还出问题？引导发现 get_db_connection 函数未定义、异常被静默吞掉",
+      "result": "修复真正问题：添加函数定义、错误日志记录、双写同步"
+    },
+    "triggers": [
+      "反复出现",
+      "多次修复",
+      "问题复现",
+      "补丁",
+      "治标不治本"
+    ],
+    "related_topics": [
+      "问题解决",
+      "根因分析",
+      "调试"
+    ],
+    "created": "2026-03-23T20:05:06.901400",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260323-008",
+    "lesson": "发现重要教训后应立即入库，不能等用户提醒",
+    "story": {
+      "context": "修复心跳问题后总结了很好的教训，但没有主动执行入库流程，需要用户追问才想起",
+      "approaches": [
+        "修复代码",
+        "总结教训",
+        "回答问题"
+      ],
+      "breakthrough": "用户追问：为什么不能自动入库？",
+      "result": "应建立规则：发现教训 → 立即调用 lesson_manager.py add"
+    },
+    "triggers": [
+      "总结",
+      "教训",
+      "经验",
+      "入库",
+      "忘记"
+    ],
+    "related_topics": [
+      "流程",
+      "自动化",
+      "教训管理"
+    ],
+    "created": "2026-03-23T20:10:00.915231",
+    "times_matched": 0,
+    "last_matched": null
   }
 ]
