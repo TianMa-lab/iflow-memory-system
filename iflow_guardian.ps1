@@ -494,6 +494,12 @@ while ($true) {
             $idleSeconds = ((Get-Date) - $lastActive).TotalSeconds
             $currentSummary = $heartbeat.lastSummary
             
+            # 防止递归累积：去掉自动记录前缀
+            $currentSummary = $currentSummary -replace "^【自动记录】[^：:]+[：:]\s*", ""
+            $currentSummary = $currentSummary -replace "^会话空闲 [\d.]+秒，记录：\s*", ""
+            $currentSummary = $currentSummary -replace "^health-check$", "健康检查"
+            $currentSummary = $currentSummary -replace "^auto-fix$", "自动修复"
+            
             # === 4. 心跳停滞检测 ===
             if ($idleSeconds -gt $HeartbeatStallThreshold) {
                 # 避免重复提醒，每5分钟最多提醒一次
