@@ -239,5 +239,306 @@
     "created": "2026-03-23T20:10:00.915231",
     "times_matched": 0,
     "last_matched": null
+  },
+  {
+    "id": "lesson-20260323-009",
+    "lesson": "只有承诺没有机制等于没有保证，必须建立强制检测机制",
+    "story": {
+      "context": "用户问：有保证机制？才发现我只说了以后应该，但没有建立强制执行机制",
+      "approaches": [
+        "口头承诺",
+        "以后应该"
+      ],
+      "breakthrough": "用户追问：有保证机制？意识到需要强制检测",
+      "result": "在 response_auditor.py 添加教训检测规则 + 在 Guardian 添加教训检查函数"
+    },
+    "triggers": [
+      "保证",
+      "机制",
+      "承诺",
+      "强制",
+      "执行"
+    ],
+    "related_topics": [
+      "流程控制",
+      "强制机制",
+      "教训管理"
+    ],
+    "created": "2026-03-23T20:13:20.450104",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260323-010",
+    "lesson": "修改代码时必须考虑连锁反应，评估对其他模块和性能的影响",
+    "story": {
+      "context": "升级技能唤醒机制时，只关注了功能实现，没有考虑：性能影响、降级可靠性、误触发率、调用方兼容性",
+      "approaches": [
+        "直接修改",
+        "只关注功能"
+      ],
+      "breakthrough": "用户追问：牵一发而动全身，有没有深入考虑连锁反应？",
+      "result": "应建立修改检查清单：性能、降级、误触发、兼容性"
+    },
+    "triggers": [
+      "修改",
+      "连锁反应",
+      "影响",
+      "兼容",
+      "性能"
+    ],
+    "related_topics": [
+      "代码修改",
+      "系统设计",
+      "风险评估"
+    ],
+    "created": "2026-03-23T20:35:51.311879",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260323-011",
+    "lesson": "开发新功能前应检查是否有现成工具可复用，避免重复造轮子",
+    "story": {
+      "context": "已有 semantic-match skill 提供 LLM 语义匹配，但又在 scenario_vectors.py 里重新实现了向量语义匹配，没有考虑复用",
+      "approaches": [
+        "直接开发新功能",
+        "忽略已有工具"
+      ],
+      "breakthrough": "用户追问：前面不是开发了一个语义匹配skill？",
+      "result": "应先调研现有工具，确定分工：向量匹配用 scenario_vectors，深度语义用 semantic-match"
+    },
+    "triggers": [
+      "复用",
+      "重复造轮子",
+      "已有工具",
+      "分工"
+    ],
+    "related_topics": [
+      "代码复用",
+      "架构设计",
+      "调研"
+    ],
+    "created": "2026-03-23T20:45:49.466235",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260324-001",
+    "lesson": "向量存储统一化：Lessons和Skills整合到同一ChromaDB",
+    "story": {
+      "context": "原系统lessons用独立ChromaDB，scenarios用另一个目录，分散存储导致配置重复",
+      "approaches": [],
+      "breakthrough": "",
+      "result": "统一到~/.iflow/vector_db/，共享嵌入配置，减少代码重复"
+    },
+    "triggers": [
+      "向量",
+      "ChromaDB",
+      "嵌入",
+      "向量库"
+    ],
+    "related_topics": [
+      "架构",
+      "向量存储"
+    ],
+    "created": "2026-03-24T08:32:11.370184",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260324-002",
+    "lesson": "三级检测架构：regex→vector→LLM层层递进",
+    "story": {
+      "context": "技能检测需要平衡速度和准确性，单一方法无法兼顾",
+      "approaches": [],
+      "breakthrough": "",
+      "result": "regex(41ms快速)→vector(3s中等)→LLM(5-10s最准)，逐层fallback确保响应快又准"
+    },
+    "triggers": [
+      "检测",
+      "技能",
+      "语义",
+      "匹配",
+      "regex",
+      "vector",
+      "LLM"
+    ],
+    "related_topics": [
+      "架构",
+      "技能检测",
+      "性能"
+    ],
+    "created": "2026-03-24T08:32:22.249482",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260324-003",
+    "lesson": "宣布完成前必须验证全链路可用，不能只看代码写了就认为完成",
+    "story": {
+      "context": "昨天宣布向量存储统一化完成，但scenarios是0条、LM Studio API未运行、三级检测未测试",
+      "approaches": [],
+      "breakthrough": "",
+      "result": "必须检查：1.API可用 2.数据有内容 3.功能可运行"
+    },
+    "triggers": [
+      "完成",
+      "宣布",
+      "验证",
+      "全链路",
+      "测试"
+    ],
+    "related_topics": [
+      "自省",
+      "质量"
+    ],
+    "created": "2026-03-24T08:39:32.645596",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260324-004",
+    "lesson": "三级检测需优化：Level 2/3 每次调用API获取嵌入会很慢，需要缓存机制",
+    "story": {
+      "context": "测试时Level 2向量检测超时，因为每次都要调LM Studio API获取嵌入",
+      "approaches": [],
+      "breakthrough": "",
+      "result": "方案：1.缓存查询向量 2.设置超时限制 3.优先使用正则匹配"
+    },
+    "triggers": [
+      "性能",
+      "超时",
+      "向量",
+      "检测",
+      "缓存"
+    ],
+    "related_topics": [
+      "性能优化"
+    ],
+    "created": "2026-03-24T09:24:02.436867",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260324-005",
+    "lesson": "curl.exe比Python requests快20倍，本地调用API应优先用curl",
+    "story": {
+      "context": "向量搜索用requests需5-7秒，换成curl.exe只需2-3秒，性能提升2-3倍",
+      "approaches": [],
+      "breakthrough": "",
+      "result": "优先用curl.exe调用本地API，避免Python requests的开销"
+    },
+    "triggers": [
+      "requests",
+      "curl",
+      "API调用",
+      "性能",
+      "本地模型"
+    ],
+    "related_topics": [
+      "性能优化",
+      "工具选择"
+    ],
+    "created": "2026-03-24T10:41:32.577473",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260324-006",
+    "lesson": "向量搜索必须使用同一嵌入模型：存储和查询模型必须一致，否则向量无法匹配",
+    "story": {
+      "context": "vector_store.py 用 nomic 模型，但我手动更新嵌入用了 bge-m3，导致搜索完全失效",
+      "approaches": [],
+      "breakthrough": "",
+      "result": "统一使用 text-embedding-nomic-embed-text-v1.5，确保存储和查询模型一致"
+    },
+    "triggers": [
+      "嵌入",
+      "embedding",
+      "向量",
+      "模型",
+      "ChromaDB",
+      "搜索失败"
+    ],
+    "related_topics": [
+      "向量搜索",
+      "调试"
+    ],
+    "created": "2026-03-24T11:40:36.946062",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260324-007",
+    "lesson": "向量库架构需统一：lesson_manager.py 和 vector_store.py 使用不同嵌入模型和存储位置，应统一避免混乱",
+    "story": {
+      "context": "lesson_manager 用 bge-m3 + 独立目录，vector_store 用 nomic + ~/.iflow/vector_db",
+      "approaches": [],
+      "breakthrough": "",
+      "result": ""
+    },
+    "triggers": [
+      "向量库",
+      "嵌入模型",
+      "架构",
+      "统一"
+    ],
+    "related_topics": [
+      "架构设计"
+    ],
+    "created": "2026-03-24T11:41:26.453109",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260324-008",
+    "lesson": "PowerShell 的 Set-Content 默认用 UTF-16 编码，中文文件需用 [System.IO.File]::WriteAllText 或 Python 写入，否则乱码",
+    "story": {
+      "context": "多次用 Set-Content 写 AGENTS.md 导致中文显示为乱码，Python 读取正常但 PowerShell 终端显示乱码",
+      "approaches": [],
+      "breakthrough": "",
+      "result": "中文文件写入时用 Python 或 .NET 方法，避免 PowerShell 默认编码陷阱"
+    },
+    "triggers": [
+      "PowerShell",
+      "编码",
+      "乱码",
+      "Set-Content",
+      "中文",
+      "UTF-16",
+      "UTF-8"
+    ],
+    "related_topics": [
+      "编码",
+      "PowerShell",
+      "文件处理"
+    ],
+    "created": "2026-03-24T14:20:24.646574",
+    "times_matched": 0,
+    "last_matched": null
+  },
+  {
+    "id": "lesson-20260324-009",
+    "lesson": "PowerShell 调用 Python 长命令容易解析错误，建议用脚本文件或 task 代理",
+    "story": {
+      "context": "创建 skill 文件时 python -c 长命令被 PowerShell 解析失败",
+      "approaches": [],
+      "breakthrough": "",
+      "result": "复杂操作用 task 代理或写脚本文件，避免长命令"
+    },
+    "triggers": [
+      "PowerShell",
+      "Python",
+      "长命令",
+      "解析错误",
+      "语法错误"
+    ],
+    "related_topics": [
+      "工具链"
+    ],
+    "created": "2026-03-24T14:21:32.233327",
+    "times_matched": 0,
+    "last_matched": null
   }
 ]

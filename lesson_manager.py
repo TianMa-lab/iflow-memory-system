@@ -51,7 +51,7 @@ except ImportError:
 LESSONS_DIR = os.path.dirname(os.path.abspath(__file__))
 LESSONS_FILE = os.path.join(LESSONS_DIR, "lessons.json")
 EMBEDDINGS_FILE = os.path.join(LESSONS_DIR, "lesson_embeddings.json")
-CHROMA_DIR = os.path.join(LESSONS_DIR, "chroma_db")
+CHROMA_DIR = os.path.join(os.path.expanduser("~"), ".iflow", "vector_db")
 
 # LLM 配置（LM Studio 默认端口）
 LLM_CONFIG = {
